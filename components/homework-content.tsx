@@ -9,20 +9,37 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, FileImage, FileText, Trash2, Edit3, Check, Clock, ChevronRight, X, Upload } from "lucide-react"
+import Link from "next/link"
+import {
+  Plus,
+  FileImage,
+  FileText,
+  Trash2,
+  Edit3,
+  Check,
+  Clock,
+  ChevronRight,
+  X,
+  Upload,
+  Home,
+  BookOpen,
+  Headphones,
+  NotebookPen,
+  PlayCircle,
+} from "lucide-react"
+import type { HomeworkData, Homework, HomeworkStatus, Subject, HomeworkAttachment } from "@/lib/types"
+import { SUBJECT_COLORS, SUBJECT_BG_COLORS, STATUS_LABELS } from "@/lib/types"
+import { HomeworkCanvas } from "./homework-canvas"
 import {
   getHomeworkData,
-  saveHomeworkData,
   createHomework,
   addHomework,
+  saveHomeworkData,
   updateHomework,
   deleteHomework,
   updateAttachmentAnnotation,
   getHomeworkStats,
-} from "@/lib/homework-storage"
-import type { HomeworkData, Homework, HomeworkStatus, Subject, HomeworkAttachment } from "@/lib/types"
-import { SUBJECT_COLORS, SUBJECT_BG_COLORS, STATUS_LABELS } from "@/lib/types"
-import { HomeworkCanvas } from "./homework-canvas"
+} from "@/lib/homework-utils"
 
 export function HomeworkContent() {
   const [data, setData] = useState<HomeworkData | null>(null)
@@ -170,113 +187,193 @@ export function HomeworkContent() {
   const filteredHomeworks = getFilteredHomeworks()
 
   return (
-    <div className="space-y-4 md:space-y-6">
-      {/* 统计卡片 */}
-      <div className="grid grid-cols-3 gap-3 md:gap-4">
-        <Card className="p-3 md:p-4 text-center bg-gradient-to-br from-amber-50 to-orange-50">
-          <div className="text-2xl md:text-3xl font-bold text-amber-600">{stats.pending}</div>
-          <div className="text-xs md:text-sm text-amber-700">待完成</div>
-        </Card>
-        <Card className="p-3 md:p-4 text-center bg-gradient-to-br from-blue-50 to-cyan-50">
-          <div className="text-2xl md:text-3xl font-bold text-blue-600">{stats.inProgress}</div>
-          <div className="text-xs md:text-sm text-blue-700">进行中</div>
-        </Card>
-        <Card className="p-3 md:p-4 text-center bg-gradient-to-br from-green-50 to-emerald-50">
-          <div className="text-2xl md:text-3xl font-bold text-green-600">{stats.completed}</div>
-          <div className="text-xs md:text-sm text-green-700">已完成</div>
-        </Card>
-      </div>
+    <div className="min-h-screen bg-gradient-to-b from-green-50 via-yellow-50 to-orange-50">
+      <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b">
+        <div className="max-w-md md:max-w-2xl lg:max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+          <Link
+            href="/"
+            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Home className="w-5 h-5" />
+            <span className="text-sm">返回首页</span>
+          </Link>
+          <h1 className="text-lg md:text-xl font-bold text-primary">作业管理</h1>
+          <div className="w-20" />
+        </div>
+      </header>
 
-      {/* 筛选和添加 */}
-      <div className="flex items-center gap-2 md:gap-3 flex-wrap">
-        <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as HomeworkStatus | "all")}>
-          <SelectTrigger className="w-28 md:w-32 h-9 md:h-10">
-            <SelectValue placeholder="状态" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">全部状态</SelectItem>
-            <SelectItem value="pending">待完成</SelectItem>
-            <SelectItem value="in_progress">进行中</SelectItem>
-            <SelectItem value="completed">已完成</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Select value={filterSubject} onValueChange={(v) => setFilterSubject(v as Subject | "all")}>
-          <SelectTrigger className="w-24 md:w-28 h-9 md:h-10">
-            <SelectValue placeholder="科目" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">全部科目</SelectItem>
-            <SelectItem value="语文">语文</SelectItem>
-            <SelectItem value="数学">数学</SelectItem>
-            <SelectItem value="英语">英语</SelectItem>
-            <SelectItem value="其他">其他</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Button onClick={() => setShowAddDialog(true)} className="ml-auto h-9 md:h-10 px-3 md:px-4 rounded-xl">
-          <Plus className="w-4 h-4 mr-1" />
-          添加作业
-        </Button>
-      </div>
-
-      {/* 作业列表 */}
-      <div className="space-y-3 md:space-y-4">
-        {filteredHomeworks.length === 0 ? (
-          <Card className="p-8 md:p-12 text-center">
-            <div className="text-4xl md:text-5xl mb-3">📚</div>
-            <p className="text-muted-foreground">暂无作业</p>
-          </Card>
-        ) : (
-          filteredHomeworks.map((homework) => (
-            <Card
-              key={homework.id}
-              className={`p-4 md:p-5 cursor-pointer hover:shadow-md transition-shadow bg-gradient-to-br ${SUBJECT_BG_COLORS[homework.subject]}`}
-              onClick={() => setViewingHomework(homework)}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span
-                      className={`px-2 py-0.5 rounded text-xs font-medium border ${SUBJECT_COLORS[homework.subject]}`}
-                    >
-                      {homework.subject}
-                    </span>
-                    <span
-                      className={`px-2 py-0.5 rounded text-xs ${
-                        homework.status === "completed"
-                          ? "bg-green-100 text-green-700"
-                          : homework.status === "in_progress"
-                            ? "bg-blue-100 text-blue-700"
-                            : "bg-amber-100 text-amber-700"
-                      }`}
-                    >
-                      {STATUS_LABELS[homework.status]}
-                    </span>
-                  </div>
-                  <h3 className="font-bold text-base md:text-lg text-foreground truncate">{homework.title}</h3>
-                  {homework.description && (
-                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{homework.description}</p>
-                  )}
-                  <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {new Date(homework.createdAt).toLocaleDateString()}
-                    </span>
-                    {homework.attachments.length > 0 && (
-                      <span className="flex items-center gap-1">
-                        <FileImage className="w-3 h-3" />
-                        {homework.attachments.length} 个附件
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
-              </div>
+      <main className="max-w-md md:max-w-2xl lg:max-w-4xl mx-auto px-4 py-4 md:py-6 pb-24">
+        <div className="space-y-4 md:space-y-6">
+          {/* 统计卡片 */}
+          <div className="grid grid-cols-3 gap-3 md:gap-4">
+            <Card className="p-3 md:p-4 text-center bg-gradient-to-br from-amber-50 to-orange-50">
+              <div className="text-2xl md:text-3xl font-bold text-amber-600">{stats.pending}</div>
+              <div className="text-xs md:text-sm text-amber-700">待完成</div>
             </Card>
-          ))
-        )}
-      </div>
+            <Card className="p-3 md:p-4 text-center bg-gradient-to-br from-blue-50 to-cyan-50">
+              <div className="text-2xl md:text-3xl font-bold text-blue-600">{stats.inProgress}</div>
+              <div className="text-xs md:text-sm text-blue-700">进行中</div>
+            </Card>
+            <Card className="p-3 md:p-4 text-center bg-gradient-to-br from-green-50 to-emerald-50">
+              <div className="text-2xl md:text-3xl font-bold text-green-600">{stats.completed}</div>
+              <div className="text-xs md:text-sm text-green-700">已完成</div>
+            </Card>
+          </div>
+
+          {/* 筛选和添加 */}
+          <div className="flex items-center gap-2 md:gap-3 flex-wrap">
+            <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as HomeworkStatus | "all")}>
+              <SelectTrigger className="w-28 md:w-32 h-9 md:h-10">
+                <SelectValue placeholder="状态" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部状态</SelectItem>
+                <SelectItem value="pending">待完成</SelectItem>
+                <SelectItem value="in_progress">进行中</SelectItem>
+                <SelectItem value="completed">已完成</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={filterSubject} onValueChange={(v) => setFilterSubject(v as Subject | "all")}>
+              <SelectTrigger className="w-24 md:w-28 h-9 md:h-10">
+                <SelectValue placeholder="科目" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部科目</SelectItem>
+                <SelectItem value="语文">语文</SelectItem>
+                <SelectItem value="数学">数学</SelectItem>
+                <SelectItem value="英语">英语</SelectItem>
+                <SelectItem value="其他">其他</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button onClick={() => setShowAddDialog(true)} className="ml-auto h-9 md:h-10 px-3 md:px-4 rounded-xl">
+              <Plus className="w-4 h-4 mr-1" />
+              添加作业
+            </Button>
+          </div>
+
+          {/* 作业列表 */}
+          <div className="space-y-3 md:space-y-4">
+            {filteredHomeworks.length === 0 ? (
+              <Card className="p-8 md:p-12 text-center">
+                <div className="text-4xl md:text-5xl mb-3">📚</div>
+                <p className="text-muted-foreground">暂无作业</p>
+              </Card>
+            ) : (
+              filteredHomeworks.map((homework) => (
+                <Card
+                  key={homework.id}
+                  className={`p-4 md:p-5 bg-gradient-to-br ${SUBJECT_BG_COLORS[homework.subject]}`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0" onClick={() => setViewingHomework(homework)}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span
+                          className={`px-2 py-0.5 rounded text-xs font-medium border ${SUBJECT_COLORS[homework.subject]}`}
+                        >
+                          {homework.subject}
+                        </span>
+                        <span
+                          className={`px-2 py-0.5 rounded text-xs ${
+                            homework.status === "completed"
+                              ? "bg-green-100 text-green-700"
+                              : homework.status === "in_progress"
+                                ? "bg-blue-100 text-blue-700"
+                                : "bg-amber-100 text-amber-700"
+                          }`}
+                        >
+                          {STATUS_LABELS[homework.status]}
+                        </span>
+                      </div>
+                      <h3 className="font-bold text-base md:text-lg text-foreground truncate">{homework.title}</h3>
+                      {homework.description && (
+                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{homework.description}</p>
+                      )}
+                      <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {new Date(homework.createdAt).toLocaleDateString()}
+                        </span>
+                        {homework.attachments.length > 0 && (
+                          <span className="flex items-center gap-1">
+                            <FileImage className="w-3 h-3" />
+                            {homework.attachments.length} 个附件
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2 flex-shrink-0">
+                      {homework.attachments.length > 0 && homework.attachments.some((a) => a.type === "image") ? (
+                        <Button
+                          size="sm"
+                          className="h-9 px-3 rounded-xl bg-primary hover:bg-primary/90"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            // 找到第一个图片附件开始做题
+                            const imageAtt = homework.attachments.find((a) => a.type === "image")
+                            if (imageAtt) {
+                              setViewingHomework(homework)
+                              setViewingAttachment(imageAtt)
+                              setShowCanvas(true)
+                            }
+                          }}
+                        >
+                          <PlayCircle className="w-4 h-4 mr-1" />
+                          开始
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-9 px-3 rounded-xl bg-transparent"
+                          onClick={() => setViewingHomework(homework)}
+                        >
+                          查看
+                          <ChevronRight className="w-4 h-4 ml-1" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              ))
+            )}
+          </div>
+        </div>
+      </main>
+
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg">
+        <div className="max-w-md md:max-w-2xl lg:max-w-4xl mx-auto px-4">
+          <div className="flex items-center justify-around py-2">
+            <Link
+              href="/"
+              className="flex flex-col items-center gap-1 py-2 px-4 text-muted-foreground hover:text-primary transition-colors"
+            >
+              <Home className="w-5 h-5 md:w-6 md:h-6" />
+              <span className="text-xs">首页</span>
+            </Link>
+            <Link
+              href="/study"
+              className="flex flex-col items-center gap-1 py-2 px-4 text-muted-foreground hover:text-primary transition-colors"
+            >
+              <BookOpen className="w-5 h-5 md:w-6 md:h-6" />
+              <span className="text-xs">学习</span>
+            </Link>
+            <Link
+              href="/dictation"
+              className="flex flex-col items-center gap-1 py-2 px-4 text-muted-foreground hover:text-primary transition-colors"
+            >
+              <Headphones className="w-5 h-5 md:w-6 md:h-6" />
+              <span className="text-xs">听写</span>
+            </Link>
+            <Link href="/homework" className="flex flex-col items-center gap-1 py-2 px-4 text-primary">
+              <NotebookPen className="w-5 h-5 md:w-6 md:h-6" />
+              <span className="text-xs font-medium">作业</span>
+            </Link>
+          </div>
+        </div>
+      </nav>
 
       {/* 添加作业对话框 */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
