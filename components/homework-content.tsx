@@ -39,7 +39,7 @@ import {
   deleteHomework,
   updateAttachmentAnnotation,
   getHomeworkStats,
-} from "@/lib/homework-utils"
+} from "@/lib/homework-storage"
 
 export function HomeworkContent() {
   const [data, setData] = useState<HomeworkData | null>(null)
