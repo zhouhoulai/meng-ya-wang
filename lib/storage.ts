@@ -354,3 +354,105 @@ export function removeWordsFromDictationBook(data: UserData, bookId: string, wor
     }),
   }
 }
+
+export function exportUserData(data: UserData): string {
+  const exportData = {
+    version: "1.0",
+    exportDate: new Date().toISOString(),
+    data: {
+      energyBeans: data.energyBeans,
+      totalWordsLearned: data.totalWordsLearned,
+      customWords: data.customWords,
+      wordProgress: data.wordProgress,
+      dictationBooks: data.dictationBooks,
+    },
+  }
+  return JSON.stringify(exportData, null, 2)
+}
+
+export function importUserData(
+  currentData: UserData,
+  jsonString: string,
+  mode: "merge" | "replace",
+): { success: boolean; data?: UserData; error?: string; stats?: { wordsAdded: number; booksAdded: number } } {
+  try {
+    const imported = JSON.parse(jsonString)
+
+    // 验证数据格式
+    if (!imported.version || !imported.data) {
+      return { success: false, error: "无效的数据格式" }
+    }
+
+    const importedData = imported.data
+
+    if (mode === "replace") {
+      // 替换模式：完全覆盖
+      const newData: UserData = {
+        energyBeans: importedData.energyBeans || 0,
+        totalWordsLearned: importedData.totalWordsLearned || 0,
+        todayWordsLearned: 0,
+        lastStudyDate: "",
+        customWords: importedData.customWords || [],
+        wordProgress: importedData.wordProgress || {},
+        dictationBooks: importedData.dictationBooks || [],
+      }
+      return {
+        success: true,
+        data: newData,
+        stats: {
+          wordsAdded: newData.customWords.length,
+          booksAdded: newData.dictationBooks.length,
+        },
+      }
+    } else {
+      // 合并模式：保留现有数据，添加新数据
+      const existingWordSet = new Set(currentData.customWords.map((w) => w.word))
+      const existingBookSet = new Set(currentData.dictationBooks.map((b) => b.name))
+
+      // 合并自定义词语（跳过重复）
+      const newWords = (importedData.customWords || []).filter((w: Word) => !existingWordSet.has(w.word))
+
+      // 合并听写本（跳过同名）
+      const newBooks = (importedData.dictationBooks || []).filter((b: DictationBook) => !existingBookSet.has(b.name))
+
+      // 合并词语进度
+      const mergedProgress = { ...currentData.wordProgress }
+      Object.entries(importedData.wordProgress || {}).forEach(([id, progress]) => {
+        if (!mergedProgress[id]) {
+          mergedProgress[id] = progress as WordProgress
+        }
+      })
+
+      const newData: UserData = {
+        ...currentData,
+        energyBeans: currentData.energyBeans + (importedData.energyBeans || 0),
+        customWords: [...currentData.customWords, ...newWords],
+        wordProgress: mergedProgress,
+        dictationBooks: [...currentData.dictationBooks, ...newBooks],
+      }
+
+      return {
+        success: true,
+        data: newData,
+        stats: {
+          wordsAdded: newWords.length,
+          booksAdded: newBooks.length,
+        },
+      }
+    }
+  } catch (e) {
+    return { success: false, error: "JSON 解析失败，请检查文件格式" }
+  }
+}
+
+export function downloadFile(content: string, filename: string): void {
+  const blob = new Blob([content], { type: "application/json" })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}

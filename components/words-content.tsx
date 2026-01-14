@@ -208,43 +208,41 @@ export function WordsContent() {
   const selectedCount = extractedWords.filter((w) => w.selected && !w.exists).length
 
   return (
-    <main className="min-h-screen bg-background pb-24">
-      {/* 顶部导航 */}
-      <header className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-10">
-        <div className="max-w-md mx-auto px-4 py-3">
-          <div className="flex items-center gap-3">
-            <Link href="/" className="p-2 -ml-2 rounded-full hover:bg-muted transition-colors">
-              <ArrowLeft className="w-5 h-5 text-muted-foreground" />
-            </Link>
-            <h1 className="text-xl font-bold text-foreground">生词本</h1>
-          </div>
-        </div>
-      </header>
+    <main className="min-h-screen bg-background p-4 md:p-6 lg:p-8 pb-24">
+      <div className="max-w-md md:max-w-2xl lg:max-w-4xl mx-auto space-y-6 md:space-y-8">
+        {/* 顶部导航 */}
+        <header className="flex items-center justify-between">
+          <Link href="/" className="p-2 -ml-2 rounded-full hover:bg-muted transition-colors">
+            <ArrowLeft className="w-5 h-5 md:w-6 md:h-6 text-muted-foreground" />
+          </Link>
+          <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-foreground">生词本</h1>
+          <div className="w-9" />
+        </header>
 
-      <div className="max-w-md mx-auto px-4 py-4 space-y-4">
-        {/* 搜索框 */}
+        {/* 搜索栏 */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           <Input
-            placeholder="搜索词语、拼音或例句..."
+            placeholder="搜索词语..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 h-12 rounded-xl"
+            className="pl-10 h-12 md:h-14 text-base md:text-lg rounded-xl"
           />
         </div>
 
         {/* 智能添加卡片 */}
-        <Card className="p-4 bg-gradient-to-r from-primary/5 to-accent/5 border-primary/20">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-primary" />
+        <Card className="p-4 md:p-6 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 md:gap-4">
+              <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-primary/20 flex items-center justify-center">
+                <Sparkles className="w-6 h-6 md:w-7 md:h-7 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-bold text-foreground md:text-lg">智能添加生词</h3>
+                <p className="text-sm md:text-base text-muted-foreground">输入句子，选择不认识的词</p>
+              </div>
             </div>
-            <div className="flex-1">
-              <p className="font-medium text-foreground">智能添加生词</p>
-              <p className="text-sm text-muted-foreground">输入句子，点选不认识的词语</p>
-            </div>
-            <Button variant="outline" size="sm" onClick={() => setIsSentenceDialogOpen(true)} className="rounded-full">
-              <Type className="w-4 h-4 mr-1" />
+            <Button onClick={() => setIsSentenceDialogOpen(true)} className="rounded-xl md:h-12 md:px-6 md:text-base">
               开始
             </Button>
           </div>
@@ -438,6 +436,30 @@ export function WordsContent() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* 底部导航 */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border px-4 py-3 md:py-4">
+        <div className="max-w-md md:max-w-2xl lg:max-w-4xl mx-auto flex justify-around">
+          <Link
+            href="/"
+            className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary transition-colors"
+          >
+            <BookOpen className="w-6 h-6 md:w-7 md:h-7" />
+            <span className="text-xs md:text-sm">首页</span>
+          </Link>
+          <Link
+            href="/dictation"
+            className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary transition-colors"
+          >
+            <Type className="w-6 h-6 md:w-7 md:h-7" />
+            <span className="text-xs md:text-sm">听写</span>
+          </Link>
+          <Link href="/words" className="flex flex-col items-center gap-1 text-primary">
+            <Plus className="w-6 h-6 md:w-7 md:h-7" />
+            <span className="text-xs md:text-sm">生词本</span>
+          </Link>
+        </div>
+      </nav>
     </main>
   )
 }

@@ -44,7 +44,6 @@ export default function StudyPage() {
   const currentWord = words[currentIndex]
   const progress = words.length > 0 ? (currentIndex / words.length) * 100 : 0
 
-  // 处理认识/不认识
   const handleAnswer = useCallback(
     (known: boolean) => {
       if (!userData || !currentWord) return
@@ -73,12 +72,10 @@ export default function StudyPage() {
       saveUserData(newUserData)
       setUserData(newUserData)
 
-      // 进入下一个词或结束
       if (currentIndex < words.length - 1) {
         setCurrentIndex(currentIndex + 1)
         setPhase("show")
       } else {
-        // 学习完成，跳转到结算页
         router.push(
           `/complete?correct=${sessionStats.correct + (known ? 1 : 0)}&wrong=${sessionStats.wrong + (known ? 0 : 1)}&beans=${sessionStats.beans + beansEarned}`,
         )
@@ -99,74 +96,75 @@ export default function StudyPage() {
     <main className="min-h-screen bg-background flex flex-col">
       {/* 顶部导航 */}
       <header className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-10">
-        <div className="max-w-md mx-auto px-4 py-3">
+        <div className="max-w-md md:max-w-2xl lg:max-w-4xl mx-auto px-4 md:px-6 py-3 md:py-4">
           <div className="flex items-center justify-between mb-2">
             <Link href="/" className="p-2 -ml-2 rounded-full hover:bg-muted transition-colors">
-              <ArrowLeft className="w-5 h-5 text-muted-foreground" />
+              <ArrowLeft className="w-5 h-5 md:w-6 md:h-6 text-muted-foreground" />
             </Link>
-            <span className="text-sm text-muted-foreground">
+            <span className="text-sm md:text-base text-muted-foreground">
               {currentIndex + 1} / {words.length}
             </span>
             <EnergyBean count={userData.energyBeans} />
           </div>
-          <Progress value={progress} className="h-2" />
+          <Progress value={progress} className="h-2 md:h-3" />
         </div>
       </header>
 
       {/* 学习内容区 */}
-      <div className="flex-1 flex flex-col items-center justify-center p-4 max-w-md mx-auto w-full">
+      <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 max-w-md md:max-w-2xl lg:max-w-4xl mx-auto w-full">
         {phase === "show" && (
-          <div className="flex flex-col items-center gap-6 animate-in fade-in duration-300">
+          <div className="flex flex-col items-center gap-6 md:gap-8 animate-in fade-in duration-300 w-full">
             <WordCard word={currentWord} />
 
             {/* 操作按钮区 */}
-            <div className="flex flex-col items-center gap-4 w-full">
-              {/* 练习书写按钮 */}
+            <div className="flex flex-col items-center gap-4 md:gap-6 w-full">
               <Button
                 variant="outline"
                 size="lg"
                 onClick={() => setPhase("practice")}
-                className="rounded-2xl h-12 px-6"
+                className="rounded-2xl h-12 md:h-14 px-6 md:px-8 text-base md:text-lg"
               >
-                <Pencil className="w-5 h-5 mr-2" />
+                <Pencil className="w-5 h-5 md:w-6 md:h-6 mr-2" />
                 练习书写
               </Button>
 
-              <div className="flex gap-4 w-full max-w-xs">
+              <div className="flex gap-4 md:gap-6 w-full max-w-xs md:max-w-md">
                 <Button
                   variant="outline"
                   size="lg"
                   onClick={() => handleAnswer(false)}
-                  className="flex-1 h-14 rounded-2xl border-2 border-destructive/30 text-destructive hover:bg-destructive/10 hover:border-destructive"
+                  className="flex-1 h-14 md:h-16 rounded-2xl border-2 border-destructive/30 text-destructive hover:bg-destructive/10 hover:border-destructive text-base md:text-lg"
                 >
-                  <X className="w-5 h-5 mr-2" />
+                  <X className="w-5 h-5 md:w-6 md:h-6 mr-2" />
                   不认识
                 </Button>
                 <Button
                   size="lg"
                   onClick={() => handleAnswer(true)}
-                  className="flex-1 h-14 rounded-2xl bg-primary hover:bg-primary/90"
+                  className="flex-1 h-14 md:h-16 rounded-2xl bg-primary hover:bg-primary/90 text-base md:text-lg"
                 >
-                  <Check className="w-5 h-5 mr-2" />
+                  <Check className="w-5 h-5 md:w-6 md:h-6 mr-2" />
                   认识
                 </Button>
               </div>
 
-              <p className="text-xs text-muted-foreground text-center">认识 +2 能量豆 · 不认识 +1 能量豆</p>
+              <p className="text-xs md:text-sm text-muted-foreground text-center">认识 +2 能量豆 · 不认识 +1 能量豆</p>
             </div>
           </div>
         )}
 
         {phase === "practice" && (
-          <div className="flex flex-col items-center gap-6 animate-in fade-in duration-300">
+          <div className="flex flex-col items-center gap-6 md:gap-8 animate-in fade-in duration-300">
             <div className="text-center">
-              <span className="text-3xl sm:text-4xl font-bold text-foreground">{currentWord.word}</span>
-              <span className="ml-3 text-xl sm:text-2xl text-primary">{currentWord.pinyin}</span>
+              <span className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground">
+                {currentWord.word}
+              </span>
+              <span className="ml-3 text-xl sm:text-2xl md:text-3xl text-primary">{currentWord.pinyin}</span>
             </div>
 
             <TianZiGe word={currentWord.word} onComplete={() => setPhase("show")} />
 
-            <Button variant="ghost" onClick={() => setPhase("show")} className="text-muted-foreground">
+            <Button variant="ghost" onClick={() => setPhase("show")} className="text-muted-foreground md:text-lg">
               返回
             </Button>
           </div>

@@ -20,7 +20,6 @@ function SingleGrid({
   const [isDrawing, setIsDrawing] = useState(false)
   const lastPosRef = useRef({ x: 0, y: 0 })
 
-  // 绘制田字格背景
   const drawGrid = useCallback(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -33,12 +32,10 @@ function SingleGrid({
 
     ctx.clearRect(0, 0, s, s)
 
-    // 外边框
     ctx.strokeStyle = "#E5C07B"
     ctx.lineWidth = 3
     ctx.strokeRect(3, 3, s - 6, s - 6)
 
-    // 中心虚线
     ctx.setLineDash([6, 4])
     ctx.strokeStyle = "#C9A96E"
     ctx.lineWidth = 1.5
@@ -53,7 +50,6 @@ function SingleGrid({
     ctx.lineTo(center, s - 6)
     ctx.stroke()
 
-    // 对角线
     ctx.strokeStyle = "#D4B896"
     ctx.lineWidth = 1
     ctx.beginPath()
@@ -68,7 +64,6 @@ function SingleGrid({
 
     ctx.setLineDash([])
 
-    // 绘制参考汉字（浅色）
     ctx.font = `${s * 0.65}px "ZCOOL KuaiLe", sans-serif`
     ctx.fillStyle = "rgba(120, 180, 120, 0.15)"
     ctx.textAlign = "center"
@@ -135,7 +130,7 @@ function SingleGrid({
     ctx.moveTo(lastPosRef.current.x, lastPosRef.current.y)
     ctx.lineTo(pos.x, pos.y)
     ctx.strokeStyle = "#333"
-    ctx.lineWidth = 5
+    ctx.lineWidth = Math.max(4, size * 0.035)
     ctx.lineCap = "round"
     ctx.lineJoin = "round"
     ctx.stroke()
@@ -167,18 +162,27 @@ export function TianZiGe({ word, onComplete }: TianZiGeProps) {
   const characters = word.split("")
   const [hasDrawn, setHasDrawn] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  const [gridSize, setGridSize] = useState(140)
 
-  // 根据字数调整格子大小
-  const getGridSize = () => {
-    const len = characters.length
-    if (len <= 2) return 140
-    if (len <= 3) return 120
-    return 100
-  }
+  useEffect(() => {
+    const updateGridSize = () => {
+      const len = characters.length
+      const isMd = window.matchMedia("(min-width: 768px)").matches
+      const isLg = window.matchMedia("(min-width: 1024px)").matches
 
-  const gridSize = getGridSize()
+      let baseSize: number
+      if (len <= 2) baseSize = isLg ? 200 : isMd ? 180 : 140
+      else if (len <= 3) baseSize = isLg ? 160 : isMd ? 140 : 120
+      else baseSize = isLg ? 140 : isMd ? 120 : 100
 
-  // 检测是否有绘制
+      setGridSize(baseSize)
+    }
+
+    updateGridSize()
+    window.addEventListener("resize", updateGridSize)
+    return () => window.removeEventListener("resize", updateGridSize)
+  }, [characters.length])
+
   useEffect(() => {
     const handlePointerUp = () => {
       setHasDrawn(true)
@@ -198,43 +202,32 @@ export function TianZiGe({ word, onComplete }: TianZiGeProps) {
     }
   }, [])
 
-  // 清除所有画布
   const clearAll = () => {
-    const container = containerRef.current
-    if (!container) return
-
-    const canvases = container.querySelectorAll("canvas")
-    canvases.forEach((canvas) => {
-      const ctx = canvas.getContext("2d")
-      if (ctx) {
-        // 重新绘制网格
-        const event = new Event("clear")
-        canvas.dispatchEvent(event)
-      }
-    })
     setHasDrawn(false)
-    // 强制重新渲染
     window.location.reload()
   }
 
   return (
-    <div className="flex flex-col items-center gap-3">
-      <div ref={containerRef} className="flex gap-2 p-3 bg-amber-50 rounded-2xl shadow-lg">
+    <div className="flex flex-col items-center gap-3 md:gap-4">
+      <div
+        ref={containerRef}
+        className="flex gap-2 md:gap-3 lg:gap-4 p-3 md:p-4 lg:p-5 bg-amber-50 rounded-2xl shadow-lg"
+      >
         {characters.map((char, index) => (
           <SingleGrid key={index} character={char} size={gridSize} />
         ))}
       </div>
-      <div className="flex gap-3">
+      <div className="flex gap-3 md:gap-4">
         <button
           onClick={clearAll}
-          className="px-4 py-2 rounded-full bg-muted text-muted-foreground text-sm font-medium hover:bg-muted/80 transition-colors"
+          className="px-4 py-2 md:px-6 md:py-3 rounded-full bg-muted text-muted-foreground text-sm md:text-base font-medium hover:bg-muted/80 transition-colors"
         >
           擦除重写
         </button>
         {hasDrawn && onComplete && (
           <button
             onClick={onComplete}
-            className="px-4 py-2 rounded-full bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+            className="px-4 py-2 md:px-6 md:py-3 rounded-full bg-primary text-primary-foreground text-sm md:text-base font-medium hover:bg-primary/90 transition-colors"
           >
             写好了
           </button>
