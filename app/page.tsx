@@ -3,30 +3,24 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { getUserData, getStudyStats, getTodayWords } from "@/lib/storage"
-import { getHomeworkData, getHomeworkStats } from "@/lib/homework-storage"
 import type { UserData } from "@/lib/types"
 import { SproutMascot } from "@/components/sprout-mascot"
 import { EnergyBean } from "@/components/energy-bean"
 import { ProgressRing } from "@/components/progress-ring"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { BookOpen, Plus, Sparkles, Pencil, Settings, ClipboardList } from "lucide-react"
+import { BookOpen, Plus, Sparkles, Pencil, Settings } from "lucide-react"
 import { DataManager } from "@/components/data-manager"
 
 export default function HomePage() {
   const [userData, setUserData] = useState<UserData | null>(null)
   const [todayWordCount, setTodayWordCount] = useState(0)
   const [showDataManager, setShowDataManager] = useState(false)
-  const [pendingHomework, setPendingHomework] = useState(0)
 
   const refreshData = () => {
     const data = getUserData()
     setUserData(data)
     setTodayWordCount(getTodayWords(data).length)
-
-    const homeworkData = getHomeworkData()
-    const homeworkStats = getHomeworkStats(homeworkData)
-    setPendingHomework(homeworkStats.pending + homeworkStats.inProgress)
   }
 
   useEffect(() => {
@@ -110,31 +104,6 @@ export default function HomePage() {
           </Card>
         </div>
 
-        <Card className="p-6 md:p-8 bg-gradient-to-br from-violet-50 to-purple-50 border-violet-200">
-          <div className="flex items-center justify-between">
-            <div className="space-y-2">
-              <p className="text-violet-700 text-sm md:text-base font-medium">每日任务</p>
-              <h3 className="text-xl md:text-2xl lg:text-3xl font-bold text-violet-900">作业管理</h3>
-              <p className="text-sm md:text-base text-violet-600">
-                {pendingHomework > 0 ? `${pendingHomework} 份作业待完成` : "暂无待完成作业"}
-              </p>
-            </div>
-            <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-violet-100 flex items-center justify-center relative">
-              <ClipboardList className="w-8 h-8 md:w-10 md:h-10 text-violet-500" />
-              {pendingHomework > 0 && (
-                <span className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
-                  {pendingHomework}
-                </span>
-              )}
-            </div>
-          </div>
-          <Link href="/homework" className="block mt-4 md:mt-6">
-            <Button className="w-full h-12 md:h-14 text-base md:text-lg rounded-2xl bg-violet-500 hover:bg-violet-600 text-white">
-              查看作业
-            </Button>
-          </Link>
-        </Card>
-
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
           {/* 学习进度 */}
           <Card className="p-6 md:p-8">
@@ -189,7 +158,7 @@ export default function HomePage() {
           </Card>
         </div>
 
-        {/* 底部导航 - 添加作业入口 */}
+        {/* 底部导航 */}
         <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border px-4 py-3 md:py-4">
           <div className="max-w-md md:max-w-2xl lg:max-w-4xl mx-auto flex justify-around">
             <Link href="/" className="flex flex-col items-center gap-1 text-primary">
@@ -202,18 +171,6 @@ export default function HomePage() {
             >
               <Pencil className="w-6 h-6 md:w-7 md:h-7" />
               <span className="text-xs md:text-sm">听写</span>
-            </Link>
-            <Link
-              href="/homework"
-              className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary transition-colors relative"
-            >
-              <ClipboardList className="w-6 h-6 md:w-7 md:h-7" />
-              <span className="text-xs md:text-sm">作业</span>
-              {pendingHomework > 0 && (
-                <span className="absolute -top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center">
-                  {pendingHomework > 9 ? "9+" : pendingHomework}
-                </span>
-              )}
             </Link>
             <Link
               href="/words"
