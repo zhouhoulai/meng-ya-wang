@@ -77,10 +77,10 @@ export function DataManager({ open, onOpenChange, onDataChange }: DataManagerPro
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md mx-4 rounded-3xl">
+      <DialogContent className="max-w-md mx-4 rounded-3xl max-h-[85vh] overflow-y-auto w-[90vw]">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-center">
-            {step === "main" && "数据管理"}
+            {step === "main" && "数据管理中心"}
             {step === "import" && "导入数据"}
             {step === "export-success" && "导出成功"}
             {step === "import-success" && "导入成功"}

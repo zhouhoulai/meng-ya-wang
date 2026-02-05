@@ -13,15 +13,30 @@ const zcoolKuaiLe = ZCOOL_KuaiLe({
 export const metadata: Metadata = {
   title: "萌芽生词王 - 一年级生词辅导",
   description: "专为小学一年级学生设计的趣味汉字学习工具",
-    generator: 'v0.app'
+  generator: 'v0.app',
+
+  // 移动端优化
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "萌芽生词王",
+  },
+
+  // PWA支持
+  manifest: "/manifest.json",
+  themeColor: "#7CC47C",
+  appleMobileWebAppCapable: "yes",
+  appleMobileWebAppStatusBarStyle: "default",
 }
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  minimumScale: 1,
   userScalable: false,
   themeColor: "#7CC47C",
+  viewportFit: "cover", // iPhone刘海屏适配
 }
 
 export default function RootLayout({
@@ -31,7 +46,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN">
-      <body className={`${zcoolKuaiLe.className} antialiased min-h-screen`}>
+      <body className={`${zcoolKuaiLe.className} antialiased min-h-screen`} suppressHydrationWarning>
         {children}
         <Analytics />
       </body>
