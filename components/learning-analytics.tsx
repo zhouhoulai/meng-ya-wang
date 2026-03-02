@@ -14,20 +14,16 @@ export function LearningAnalytics() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const data = await getUserData()
-        setUserData(data)
-        const studyStats = getStudyStats(data)
-        setStats(studyStats)
-      } catch (e) {
-        console.error('Failed to load analytics:', e)
-      } finally {
-        setLoading(false)
-      }
+    try {
+      const data = getUserData()
+      setUserData(data)
+      const studyStats = getStudyStats(data)
+      setStats(studyStats)
+    } catch (e) {
+      console.error('Failed to load analytics:', e)
+    } finally {
+      setLoading(false)
     }
-
-    loadData()
   }, [])
 
   if (loading) {

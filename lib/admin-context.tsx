@@ -1,37 +1,27 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, ReactNode } from 'react'
 
-const AdminContext = createContext<{
+const ADMIN_PIN = '666666'
+
+interface AdminContextType {
   isAuthenticated: boolean
   login: (pin: string) => boolean
   logout: () => void
-} | null>(null)
+}
 
-const ADMIN_PIN = '666666' // 默认PIN，在生产环境应该更安全
-const AUTH_KEY = 'admin_auth_v1'
+const AdminContext = createContext<AdminContextType | undefined>(undefined)
 
 export function AdminProvider({ children }: { children: ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [mounted, setMounted] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return sessionStorage.getItem('admin_authenticated') === 'true'
+  })
 
-  useEffect(() => {
-    // 检查是否已登录
-    if (typeof window !== 'undefined') {
-      const stored = sessionStorage.getItem(AUTH_KEY)
-      if (stored === 'true') {
-        setIsAuthenticated(true)
-      }
-    }
-    setMounted(true)
-  }, [])
-
-  const login = (pin: string) => {
+  const login = (pin: string): boolean => {
     if (pin === ADMIN_PIN) {
       setIsAuthenticated(true)
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem(AUTH_KEY, 'true')
-      }
+      sessionStorage.setItem('admin_authenticated', 'true')
       return true
     }
     return false
@@ -39,14 +29,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     setIsAuthenticated(false)
-    if (typeof window !== 'undefined') {
-      sessionStorage.removeItem(AUTH_KEY)
-    }
-  }
-
-  // SSR时返回未认证状态
-  if (!mounted) {
-    return <>{children}</>
+    sessionStorage.removeItem('admin_authenticated')
   }
 
   return (

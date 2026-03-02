@@ -12,9 +12,9 @@ export function UserDataManager() {
   const [importMode, setImportMode] = useState<'merge' | 'replace'>('merge')
   const [loading, setLoading] = useState(false)
 
-  const loadStats = async () => {
+  const loadStats = () => {
     try {
-      const data = await getUserData()
+      const data = getUserData()
       setDataStats({
         totalWordsLearned: data.totalWordsLearned,
         energyBeans: data.energyBeans,
@@ -27,9 +27,9 @@ export function UserDataManager() {
     }
   }
 
-  const handleExport = async () => {
+  const handleExport = () => {
     try {
-      const data = await getUserData()
+      const data = getUserData()
       const exported = exportUserData(data)
       const blob = new Blob([exported], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
@@ -46,7 +46,7 @@ export function UserDataManager() {
     }
   }
 
-  const handleImport = async () => {
+  const handleImport = () => {
     const fileInput = document.createElement('input')
     fileInput.type = 'file'
     fileInput.accept = '.json'
@@ -57,17 +57,25 @@ export function UserDataManager() {
       setLoading(true)
       try {
         const text = await file.text()
-        const currentData = await getUserData()
-        const result = importUserData(currentData, text, importMode)
+        const currentData = getUserData()
+        const imported = importUserData(text)
 
-        if (result.success && result.data) {
-          await saveUserData(result.data)
-          alert(
-            `导入成功！添加了 ${result.stats?.wordsAdded || 0} 个词汇，${result.stats?.booksAdded || 0} 个生词本。`
-          )
-          await loadStats()
+        if (imported) {
+          if (importMode === 'replace') {
+            saveUserData(imported)
+          } else {
+            // 合并模式：合并自定义词汇和生词本
+            const merged = {
+              ...currentData,
+              customWords: [...currentData.customWords, ...imported.customWords],
+              dictationBooks: [...currentData.dictationBooks, ...imported.dictationBooks],
+            }
+            saveUserData(merged)
+          }
+          alert('导入成功！')
+          loadStats()
         } else {
-          alert(`导入失败：${result.error}`)
+          alert('导入失败：文件格式不正确')
         }
       } catch (e) {
         alert('导入错误，请检查文件格式')
@@ -78,7 +86,7 @@ export function UserDataManager() {
     fileInput.click()
   }
 
-  const handleResetData = async () => {
+  const handleResetData = () => {
     if (!confirm('确定要重置所有学习数据吗？此操作不可撤销！')) {
       return
     }
@@ -93,9 +101,9 @@ export function UserDataManager() {
         customWords: [],
         dictationBooks: [],
       }
-      await saveUserData(defaultData)
+      saveUserData(defaultData)
       alert('数据已重置！')
-      await loadStats()
+      loadStats()
     } catch (e) {
       alert('重置失败，请重试')
     }

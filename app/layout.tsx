@@ -2,6 +2,7 @@ import type React from "react"
 import type { Metadata, Viewport } from "next"
 import { ZCOOL_KuaiLe } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
+import { AdminProvider } from "@/lib/admin-context"
 import "./globals.css"
 
 const zcoolKuaiLe = ZCOOL_KuaiLe({
@@ -47,7 +48,9 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <body className={`${zcoolKuaiLe.className} antialiased min-h-screen`} suppressHydrationWarning>
-        {children}
+        <AdminProvider>
+          {children}
+        </AdminProvider>
         <Analytics />
       </body>
     </html>
