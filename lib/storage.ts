@@ -1,98 +1,104 @@
-import {
-  type UserData,
-  type WordProgress,
-  type BoxLevel,
-  REVIEW_INTERVALS,
-  type Word,
-  type DictationBook,
-} from "./types"
-import { PRESET_WORDS } from "./word-data"
+'use client'
 
-const STORAGE_KEY = "sprout_word_king_data"
+import type {
+  UserData,
+  WordProgress,
+  BoxLevel,
+  Word,
+  DictationBook,
+} from './types'
+import { REVIEW_INTERVALS } from './types'
+import { PRESET_WORDS } from './word-data'
+import * as dbService from './db-service'
+
+// 迁移旧数据到新数据库
+async function migrateOldData() {
+  if (typeof window === 'undefined') return
+
+  const OLD_STORAGE_KEY = 'sprout_word_king_data'
+  const MIGRATION_FLAG = 'migration_to_sqlite_done'
+
+  if (localStorage.getItem(MIGRATION_FLAG)) {
+    return
+  }
+
+  try {
+    const oldData = localStorage.getItem(OLD_STORAGE_KEY)
+    if (oldData) {
+      const parsed = JSON.parse(oldData) as UserData
+      
+      // 迁移用户数据
+      dbService.updateUserData({
+        energyBeans: parsed.energyBeans,
+        totalWordsLearned: parsed.totalWordsLearned,
+        todayWordsLearned: parsed.todayWordsLearned,
+        lastStudyDate: parsed.lastStudyDate,
+      })
+
+      // 迁移自定义词汇
+      if (parsed.customWords && parsed.customWords.length > 0) {
+        dbService.addWords(parsed.customWords)
+      }
+
+      // 迁移学习进度
+      Object.values(parsed.wordProgress).forEach((progress: WordProgress) => {
+        dbService.updateWordProgress(progress.wordId, progress)
+      })
+
+      // 迁移听写本
+      if (parsed.dictationBooks && parsed.dictationBooks.length > 0) {
+        parsed.dictationBooks.forEach((book) => {
+          const bookId = dbService.createDictationBook(book.name, book.color || '#e5e7eb')
+          book.wordIds.forEach((wordId) => {
+            dbService.addWordToDictationBook(bookId, wordId)
+          })
+        })
+      }
+    }
+
+    localStorage.setItem(MIGRATION_FLAG, 'true')
+  } catch (e) {
+    console.warn('Migration failed:', e)
+  }
+}
 
 // 获取今天的日期字符串
 export function getTodayDate(): string {
-  return new Date().toISOString().split("T")[0]
+  return new Date().toISOString().split('T')[0]
 }
 
 // 计算下次复习日期
 export function calculateNextReviewDate(boxLevel: BoxLevel): string {
   const today = new Date()
   today.setDate(today.getDate() + REVIEW_INTERVALS[boxLevel])
-  return today.toISOString().split("T")[0]
+  return today.toISOString().split('T')[0]
 }
 
-// 初始化默认用户数据
-function getDefaultUserData(): UserData {
-  const today = getTodayDate()
-  const wordProgress: Record<string, WordProgress> = {}
-
-  // 为预置词库初始化进度（全部从新词开始）
-  PRESET_WORDS.forEach((word) => {
-    wordProgress[word.id] = {
-      wordId: word.id,
-      boxLevel: 0,
-      lastReviewDate: "",
-      nextReviewDate: today,
-      reviewCount: 0,
-    }
-  })
-
-  return {
-    energyBeans: 0,
-    totalWordsLearned: 0,
-    todayWordsLearned: 0,
-    lastStudyDate: "",
-    wordProgress,
-    customWords: [],
-    dictationBooks: [], // 初始化空的听写本列表
-  }
-}
-
-// 获取用户数据
-export function getUserData(): UserData {
-  if (typeof window === "undefined") {
-    return getDefaultUserData()
-  }
-
-  const stored = localStorage.getItem(STORAGE_KEY)
-  if (!stored) {
-    const defaultData = getDefaultUserData()
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultData))
-    return defaultData
-  }
-
-  const data = JSON.parse(stored) as UserData
-
-  // 检查是否是新的一天，重置今日学习数
-  const today = getTodayDate()
-  if (data.lastStudyDate !== today) {
-    data.todayWordsLearned = 0
-  }
-
-  return data
+// 获取用户数据（兼容旧的localStorage）
+export async function getUserData(): Promise<UserData> {
+  await migrateOldData()
+  return await dbService.getUserData()
 }
 
 // 保存用户数据
-export function saveUserData(data: UserData): void {
-  if (typeof window === "undefined") return
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+export async function saveUserData(data: UserData): Promise<void> {
+  dbService.updateUserData(data)
 }
 
 // 获取今日待学习的词汇
-export function getTodayWords(data: UserData, limit = 10): Word[] {
+export async function getTodayWords(data: UserData, limit = 10): Promise<Word[]> {
   const today = getTodayDate()
   const allWords = [...PRESET_WORDS, ...data.customWords]
 
   // 筛选需要复习的词汇
   const wordsToReview = allWords.filter((word) => {
     const progress = data.wordProgress[word.id]
-    if (!progress) return true // 新词
-    if (progress.boxLevel >= 4 && progress.nextReviewDate > today) return false // 已掌握且未到复习时间
+    if (!progress) return true
+    if (progress.boxLevel >= 4 && progress.nextReviewDate > today) return false
     return progress.nextReviewDate <= today
   })
 
-  // 按盒子等级排序（优先复习等级低的词）
+  // 按盒子等级排序
   wordsToReview.sort((a, b) => {
     const progressA = data.wordProgress[a.id]
     const progressB = data.wordProgress[b.id]
@@ -105,82 +111,94 @@ export function getTodayWords(data: UserData, limit = 10): Word[] {
 }
 
 // 更新词汇进度（认识）
-export function markWordAsKnown(data: UserData, wordId: string): UserData {
+export async function markWordAsKnown(data: UserData, wordId: string): Promise<UserData> {
   const progress = data.wordProgress[wordId] || {
     wordId,
     boxLevel: 0 as BoxLevel,
-    lastReviewDate: "",
+    lastReviewDate: '',
     nextReviewDate: getTodayDate(),
     reviewCount: 0,
   }
 
-  // 升级盒子等级（最高4级）
   const newLevel = Math.min(progress.boxLevel + 1, 4) as BoxLevel
 
+  const updatedProgress = {
+    ...progress,
+    boxLevel: newLevel,
+    lastReviewDate: getTodayDate(),
+    nextReviewDate: calculateNextReviewDate(newLevel),
+    reviewCount: progress.reviewCount + 1,
+  }
+
+  dbService.updateWordProgress(wordId, updatedProgress)
+
   return {
     ...data,
-    energyBeans: data.energyBeans + 2, // 认识+2能量豆
+    energyBeans: data.energyBeans + 2,
     todayWordsLearned: data.todayWordsLearned + 1,
-    totalWordsLearned: progress.reviewCount === 0 ? data.totalWordsLearned + 1 : data.totalWordsLearned,
+    totalWordsLearned:
+      progress.reviewCount === 0 ? data.totalWordsLearned + 1 : data.totalWordsLearned,
     lastStudyDate: getTodayDate(),
     wordProgress: {
       ...data.wordProgress,
-      [wordId]: {
-        ...progress,
-        boxLevel: newLevel,
-        lastReviewDate: getTodayDate(),
-        nextReviewDate: calculateNextReviewDate(newLevel),
-        reviewCount: progress.reviewCount + 1,
-      },
+      [wordId]: updatedProgress,
     },
   }
 }
 
-// 更新词汇进度（不认识 - 降级到新词）
-export function markWordAsUnknown(data: UserData, wordId: string): UserData {
+// 更新词汇进度（不认识）
+export async function markWordAsUnknown(data: UserData, wordId: string): Promise<UserData> {
   const progress = data.wordProgress[wordId] || {
     wordId,
     boxLevel: 0 as BoxLevel,
-    lastReviewDate: "",
+    lastReviewDate: '',
     nextReviewDate: getTodayDate(),
     reviewCount: 0,
   }
 
+  const updatedProgress = {
+    ...progress,
+    boxLevel: 0 as BoxLevel,
+    lastReviewDate: getTodayDate(),
+    nextReviewDate: getTodayDate(),
+    reviewCount: progress.reviewCount + 1,
+  }
+
+  dbService.updateWordProgress(wordId, updatedProgress)
+
   return {
     ...data,
-    energyBeans: data.energyBeans + 1, // 不认识+1能量豆（鼓励学习）
+    energyBeans: data.energyBeans + 1,
     lastStudyDate: getTodayDate(),
     wordProgress: {
       ...data.wordProgress,
-      [wordId]: {
-        ...progress,
-        boxLevel: 0, // 降级为新词
-        lastReviewDate: getTodayDate(),
-        nextReviewDate: getTodayDate(), // 立即需要复习
-        reviewCount: progress.reviewCount + 1,
-      },
+      [wordId]: updatedProgress,
     },
   }
 }
 
-export function addCustomWord(data: UserData, wordData: Omit<Word, "id" | "isCustom">): UserData {
-  const newWord: Word = {
+// 添加自定义词
+export async function addCustomWord(data: UserData, wordData: Omit<Word, 'id' | 'isCustom'>): Promise<UserData> {
+  const id = dbService.addCustomWord({
     ...wordData,
     id: `custom_${Date.now()}`,
     isCustom: true,
-  }
+  })
 
   const today = getTodayDate()
 
   return {
     ...data,
-    customWords: [...data.customWords, newWord],
+    customWords: [
+      ...data.customWords,
+      { ...wordData, id, isCustom: true },
+    ],
     wordProgress: {
       ...data.wordProgress,
-      [newWord.id]: {
-        wordId: newWord.id,
+      [id]: {
+        wordId: id,
         boxLevel: 0,
-        lastReviewDate: "",
+        lastReviewDate: '',
         nextReviewDate: today,
         reviewCount: 0,
       },
@@ -188,8 +206,8 @@ export function addCustomWord(data: UserData, wordData: Omit<Word, "id" | "isCus
   }
 }
 
-// 删除自定义词汇
-export function removeCustomWord(data: UserData, wordId: string): UserData {
+// 删除自定义词
+export async function removeCustomWord(data: UserData, wordId: string): Promise<UserData> {
   const newProgress = { ...data.wordProgress }
   delete newProgress[wordId]
 
@@ -200,31 +218,40 @@ export function removeCustomWord(data: UserData, wordId: string): UserData {
   }
 }
 
-export function addCustomWords(data: UserData, words: Array<Omit<Word, "id" | "isCustom">>): UserData {
+// 批量添加自定义词
+export async function addCustomWords(
+  data: UserData,
+  words: Array<Omit<Word, 'id' | 'isCustom'>>,
+): Promise<UserData> {
   const today = getTodayDate()
-  const allExistingWords = new Set([...PRESET_WORDS.map((w) => w.word), ...data.customWords.map((w) => w.word)])
+  const allExistingWords = new Set([
+    ...PRESET_WORDS.map((w) => w.word),
+    ...data.customWords.map((w) => w.word),
+  ])
 
   let updatedData = { ...data }
 
   words.forEach((wordData, index) => {
-    // 跳过已存在的词语
     if (allExistingWords.has(wordData.word)) return
 
+    const id = `custom_${Date.now()}_${index}`
     const newWord: Word = {
       ...wordData,
-      id: `custom_${Date.now()}_${index}`,
+      id,
       isCustom: true,
     }
+
+    dbService.addCustomWord(newWord)
 
     updatedData = {
       ...updatedData,
       customWords: [...updatedData.customWords, newWord],
       wordProgress: {
         ...updatedData.wordProgress,
-        [newWord.id]: {
-          wordId: newWord.id,
+        [id]: {
+          wordId: id,
           boxLevel: 0,
-          lastReviewDate: "",
+          lastReviewDate: '',
           nextReviewDate: today,
           reviewCount: 0,
         },
@@ -237,8 +264,12 @@ export function addCustomWords(data: UserData, words: Array<Omit<Word, "id" | "i
   return updatedData
 }
 
+// 检查词是否存在
 export function isWordExists(data: UserData, word: string): boolean {
-  const allWords = new Set([...PRESET_WORDS.map((w) => w.word), ...data.customWords.map((w) => w.word)])
+  const allWords = new Set([
+    ...PRESET_WORDS.map((w) => w.word),
+    ...data.customWords.map((w) => w.word),
+  ])
   return allWords.has(word)
 }
 
@@ -266,7 +297,7 @@ export function getStudyStats(data: UserData) {
   return stats
 }
 
-// 获取所有词语（预置+自定义）
+// 获取所有词语
 export function getAllWords(data: UserData): Word[] {
   return [...PRESET_WORDS, ...data.customWords]
 }
@@ -282,11 +313,22 @@ export function getWordsByIds(data: UserData, wordIds: string[]): Word[] {
   return wordIds.map((id) => allWords.find((w) => w.id === id)).filter((w): w is Word => w !== undefined)
 }
 
-// 创建听写生词本
-export function createDictationBook(data: UserData, name: string, wordIds: string[], color: string): UserData {
+// 创建听写本
+export async function createDictationBook(
+  data: UserData,
+  name: string,
+  wordIds: string[],
+  color: string,
+): Promise<UserData> {
+  const bookId = dbService.createDictationBook(name, color)
+  
+  wordIds.forEach((wordId) => {
+    dbService.addWordToDictationBook(bookId, wordId)
+  })
+
   const now = new Date().toISOString()
   const newBook: DictationBook = {
-    id: `book_${Date.now()}`,
+    id: bookId,
     name,
     wordIds,
     createdAt: now,
@@ -300,12 +342,12 @@ export function createDictationBook(data: UserData, name: string, wordIds: strin
   }
 }
 
-// 更新听写生词本
-export function updateDictationBook(
+// 更新听写本
+export async function updateDictationBook(
   data: UserData,
   bookId: string,
-  updates: Partial<Pick<DictationBook, "name" | "wordIds" | "color">>,
-): UserData {
+  updates: Partial<Pick<DictationBook, 'name' | 'wordIds' | 'color'>>,
+): Promise<UserData> {
   return {
     ...data,
     dictationBooks: data.dictationBooks.map((book) =>
@@ -314,16 +356,25 @@ export function updateDictationBook(
   }
 }
 
-// 删除听写生词本
-export function deleteDictationBook(data: UserData, bookId: string): UserData {
+// 删除听写本
+export async function deleteDictationBook(data: UserData, bookId: string): Promise<UserData> {
+  dbService.deleteDictationBook(bookId)
   return {
     ...data,
     dictationBooks: data.dictationBooks.filter((book) => book.id !== bookId),
   }
 }
 
-// 向听写本添加词语
-export function addWordsToDictationBook(data: UserData, bookId: string, wordIds: string[]): UserData {
+// 向听写本添加词
+export async function addWordsToDictationBook(
+  data: UserData,
+  bookId: string,
+  wordIds: string[],
+): Promise<UserData> {
+  wordIds.forEach((wordId) => {
+    dbService.addWordToDictationBook(bookId, wordId)
+  })
+
   return {
     ...data,
     dictationBooks: data.dictationBooks.map((book) => {
@@ -339,8 +390,16 @@ export function addWordsToDictationBook(data: UserData, bookId: string, wordIds:
   }
 }
 
-// 从听写本移除词语
-export function removeWordsFromDictationBook(data: UserData, bookId: string, wordIds: string[]): UserData {
+// 从听写本移除词
+export async function removeWordsFromDictationBook(
+  data: UserData,
+  bookId: string,
+  wordIds: string[],
+): Promise<UserData> {
+  wordIds.forEach((wordId) => {
+    dbService.removeWordFromDictationBook(bookId, wordId)
+  })
+
   const idsToRemove = new Set(wordIds)
   return {
     ...data,
@@ -355,9 +414,10 @@ export function removeWordsFromDictationBook(data: UserData, bookId: string, wor
   }
 }
 
+// 导出用户数据
 export function exportUserData(data: UserData): string {
   const exportData = {
-    version: "1.0",
+    version: '1.0',
     exportDate: new Date().toISOString(),
     data: {
       energyBeans: data.energyBeans,
@@ -370,28 +430,32 @@ export function exportUserData(data: UserData): string {
   return JSON.stringify(exportData, null, 2)
 }
 
+// 导入用户数据
 export function importUserData(
   currentData: UserData,
   jsonString: string,
-  mode: "merge" | "replace",
-): { success: boolean; data?: UserData; error?: string; stats?: { wordsAdded: number; booksAdded: number } } {
+  mode: 'merge' | 'replace',
+): {
+  success: boolean
+  data?: UserData
+  error?: string
+  stats?: { wordsAdded: number; booksAdded: number }
+} {
   try {
     const imported = JSON.parse(jsonString)
 
-    // 验证数据格式
     if (!imported.version || !imported.data) {
-      return { success: false, error: "无效的数据格式" }
+      return { success: false, error: '无效的数据格式' }
     }
 
     const importedData = imported.data
 
-    if (mode === "replace") {
-      // 替换模式：完全覆盖
+    if (mode === 'replace') {
       const newData: UserData = {
         energyBeans: importedData.energyBeans || 0,
         totalWordsLearned: importedData.totalWordsLearned || 0,
         todayWordsLearned: 0,
-        lastStudyDate: "",
+        lastStudyDate: '',
         customWords: importedData.customWords || [],
         wordProgress: importedData.wordProgress || {},
         dictationBooks: importedData.dictationBooks || [],
@@ -405,17 +469,12 @@ export function importUserData(
         },
       }
     } else {
-      // 合并模式：保留现有数据，添加新数据
       const existingWordSet = new Set(currentData.customWords.map((w) => w.word))
       const existingBookSet = new Set(currentData.dictationBooks.map((b) => b.name))
 
-      // 合并自定义词语（跳过重复）
       const newWords = (importedData.customWords || []).filter((w: Word) => !existingWordSet.has(w.word))
-
-      // 合并听写本（跳过同名）
       const newBooks = (importedData.dictationBooks || []).filter((b: DictationBook) => !existingBookSet.has(b.name))
 
-      // 合并词语进度
       const mergedProgress = { ...currentData.wordProgress }
       Object.entries(importedData.wordProgress || {}).forEach(([id, progress]) => {
         if (!mergedProgress[id]) {
@@ -441,14 +500,15 @@ export function importUserData(
       }
     }
   } catch (e) {
-    return { success: false, error: "JSON 解析失败，请检查文件格式" }
+    return { success: false, error: 'JSON 解析失败，请检查文件格式' }
   }
 }
 
+// 下载文件
 export function downloadFile(content: string, filename: string): void {
-  const blob = new Blob([content], { type: "application/json" })
+  const blob = new Blob([content], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
-  const a = document.createElement("a")
+  const a = document.createElement('a')
   a.href = url
   a.download = filename
   document.body.appendChild(a)

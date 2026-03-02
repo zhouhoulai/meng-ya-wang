@@ -9,7 +9,7 @@ import { EnergyBean } from "@/components/energy-bean"
 import { ProgressRing } from "@/components/progress-ring"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { BookOpen, Plus, Sparkles, Pencil, Settings } from "lucide-react"
+import { BookOpen, Plus, Sparkles, Pencil, Settings, BarChart3, Lock } from "lucide-react"
 import { DataManager } from "@/components/data-manager"
 
 export default function HomePage() {
@@ -47,8 +47,18 @@ export default function HomePage() {
             <SproutMascot size="sm" mood="happy" />
             <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-foreground">萌芽生词王</h1>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <EnergyBean count={userData.energyBeans} />
+            <Link href="/analytics">
+              <Button variant="ghost" size="icon" className="rounded-full" title="学习分析">
+                <BarChart3 className="w-5 h-5 text-muted-foreground" />
+              </Button>
+            </Link>
+            <Link href="/admin">
+              <Button variant="ghost" size="icon" className="rounded-full" title="管理后台">
+                <Lock className="w-5 h-5 text-muted-foreground" />
+              </Button>
+            </Link>
             <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setShowDataManager(true)}>
               <Settings className="w-5 h-5 text-muted-foreground" />
             </Button>
@@ -171,6 +181,13 @@ export default function HomePage() {
             >
               <Pencil className="w-6 h-6 md:w-7 md:h-7" />
               <span className="text-xs md:text-sm">听写</span>
+            </Link>
+            <Link
+              href="/analytics"
+              className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary transition-colors"
+            >
+              <BarChart3 className="w-6 h-6 md:w-7 md:h-7" />
+              <span className="text-xs md:text-sm">分析</span>
             </Link>
             <Link
               href="/words"
