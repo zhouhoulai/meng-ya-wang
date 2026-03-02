@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next"
 import { ZCOOL_KuaiLe } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { AdminProvider } from "@/lib/admin-context"
+import { PageLayout } from "@/components/page-layout"
 import "./globals.css"
 
 const zcoolKuaiLe = ZCOOL_KuaiLe({
@@ -47,9 +48,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN">
-      <body className={`${zcoolKuaiLe.className} antialiased min-h-screen`} suppressHydrationWarning>
+      <body className={`${zcoolKuaiLe.className} antialiased`} suppressHydrationWarning>
         <AdminProvider>
-          {children}
+          <PageLayout>
+            {children}
+          </PageLayout>
         </AdminProvider>
         <Analytics />
       </body>

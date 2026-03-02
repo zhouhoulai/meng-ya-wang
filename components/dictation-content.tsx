@@ -300,15 +300,12 @@ export function DictationContent() {
   }
 
   return (
-    <main className="min-h-screen bg-background p-4 md:p-6 lg:p-8 pb-24">
-      <div className="max-w-md md:max-w-2xl lg:max-w-4xl mx-auto">
+    <div className="p-6 md:p-8">
+      <div className="max-w-5xl">
         {/* 顶部导航 */}
-        <header className="flex items-center justify-between mb-6 md:mb-8">
-          <button onClick={() => router.push("/")} className="p-2 rounded-full hover:bg-muted transition-colors">
-            <ChevronLeft className="w-5 h-5 md:w-6 md:h-6 text-muted-foreground" />
-          </button>
-          <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-foreground">报听写</h1>
-          <div className="w-9" />
+        <header className="mb-6 md:mb-8">
+          <h1 className="text-3xl font-bold">报听写</h1>
+          <p className="text-muted-foreground mt-2">听声音，写汉字</p>
         </header>
 
         {phase === "select" && (
@@ -682,6 +679,6 @@ export function DictationContent() {
           </div>
         )}
       </div>
-    </main>
+    </div>
   )
 }

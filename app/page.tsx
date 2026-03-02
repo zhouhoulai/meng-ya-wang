@@ -39,29 +39,16 @@ export default function HomePage() {
   const masteryProgress = stats.total > 0 ? (stats.mastered / stats.total) * 100 : 0
 
   return (
-    <main className="min-h-screen bg-background p-4 md:p-6 lg:p-8 pb-24">
-      <div className="max-w-md md:max-w-2xl lg:max-w-4xl mx-auto space-y-6">
+    <main className="min-h-screen bg-background p-6 md:p-8">
+      <div className="max-w-5xl mx-auto space-y-6">
         {/* 顶部标题栏 */}
-        <header className="flex items-center justify-between pt-2">
+        <header className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <SproutMascot size="sm" mood="happy" />
-            <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-foreground">萌芽生词王</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">萌芽生词王</h1>
           </div>
           <div className="flex items-center gap-2">
             <EnergyBean count={userData.energyBeans} />
-            <Link href="/analytics">
-              <Button variant="ghost" size="icon" className="rounded-full" title="学习分析">
-                <BarChart3 className="w-5 h-5 text-muted-foreground" />
-              </Button>
-            </Link>
-            <Link href="/admin">
-              <Button variant="ghost" size="icon" className="rounded-full" title="管理后台">
-                <Lock className="w-5 h-5 text-muted-foreground" />
-              </Button>
-            </Link>
-            <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setShowDataManager(true)}>
-              <Settings className="w-5 h-5 text-muted-foreground" />
-            </Button>
           </div>
         </header>
 
@@ -168,43 +155,7 @@ export default function HomePage() {
           </Card>
         </div>
 
-        {/* 底部导航 */}
-        <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border px-4 py-3 md:py-4">
-          <div className="max-w-md md:max-w-2xl lg:max-w-4xl mx-auto flex justify-around">
-            <Link href="/" className="flex flex-col items-center gap-1 text-primary">
-              <BookOpen className="w-6 h-6 md:w-7 md:h-7" />
-              <span className="text-xs md:text-sm">首页</span>
-            </Link>
-            <Link
-              href="/dictation"
-              className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary transition-colors"
-            >
-              <Pencil className="w-6 h-6 md:w-7 md:h-7" />
-              <span className="text-xs md:text-sm">听写</span>
-            </Link>
-            <Link
-              href="/analytics"
-              className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary transition-colors"
-            >
-              <BarChart3 className="w-6 h-6 md:w-7 md:h-7" />
-              <span className="text-xs md:text-sm">分析</span>
-            </Link>
-            <Link
-              href="/words"
-              className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary transition-colors"
-            >
-              <Plus className="w-6 h-6 md:w-7 md:h-7" />
-              <span className="text-xs md:text-sm">生词本</span>
-            </Link>
-            <button
-              onClick={() => setShowDataManager(true)}
-              className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary transition-colors"
-            >
-              <Settings className="w-6 h-6 md:w-7 md:h-7" />
-              <span className="text-xs md:text-sm">设置</span>
-            </button>
-          </div>
-        </nav>
+        {/* 底部导航 - 已移至侧边栏 */}
       </div>
 
       <DataManager open={showDataManager} onOpenChange={setShowDataManager} onDataChange={refreshData} />

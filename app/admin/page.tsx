@@ -25,8 +25,8 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background p-4 md:p-6 pb-24">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <div className="p-6 md:p-8">
+      <div className="space-y-6">
         {/* 头部 */}
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">管理员后台</h1>
@@ -62,6 +62,6 @@ export default function AdminPage() {
           </TabsContent>
         </Tabs>
       </div>
-    </main>
+    </div>
   )
 }
